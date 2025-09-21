@@ -1,0 +1,349 @@
+# Knowledge Graph QA System - .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django/Flask
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Data files (large datasets should not be in git)
+/data/raw/
+/data/processed/
+/data/embeddings/
+/data/vector_store/
+
+# Project-specific large directories
+DocLabs_Sample_Project_Template/
+
+
+
+# Keep small example data files
+!data/examples/
+!data/sample/
+!**/sample_*.csv
+!**/example_*.pdf
+
+# Machine Learning models and artifacts
+models/
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.onnx
+*.pt
+*.pth
+*.safetensors
+checkpoints/
+runs/
+wandb/
+mlruns/
+
+# Vector databases
+*.lance
+*.faiss
+*.annoy
+*.hnswlib
+
+# Neo4j database files
+neo4j/
+graph.db/
+*.db
+*.log.*
+
+# Redis dumps
+dump.rdb
+appendonly.aof
+
+# LanceDB
+.lance/
+*.arrow
+
+# Hugging Face cache
+.cache/
+transformers_cache/
+huggingface_hub/
+
+# Streamlit
+.streamlit/
+
+# Logs
+logs/
+*.log
+log_*.txt
+app.log
+error.log
+access.log
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+
+# Configuration files with secrets
+.env.local
+.env.production
+secrets.json
+config_local.py
+credentials.json
+service_account.json
+
+# API keys and tokens
+openai_key.txt
+anthropic_key.txt
+huggingface_token.txt
+*.key
+*.token
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# Kubernetes
+k8s/secrets/
+*.kubeconfig
+
+# Backup files
+backup/
+backups/
+*.backup
+backup_*
+*_backup.*
+
+# Generated files
+generated/
+output/
+exports/
+reports/
+*.generated.*
+
+# Cache directories
+cache/
+.cache/
+__cache__/
+
+# Profiling
+*.prof
+*.profile
+.profiler/
+
+# Coverage reports
+.coverage
+htmlcov/
+coverage_html/
+
+# Documentation builds
+docs/build/
+docs/_build/
+_build/
+
+# Node.js (if using any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Miscellaneous
+*.orig
+.vagrant/
+Vagrantfile.local
+.sass-cache/
+connect.lock
+.directory
+
+# Keep important config templates
+!.env.example
+!config.example.yml
+!docker-compose.example.yml
+
+# Keep documentation and examples
+!README.md
+!docs/
+!examples/
+!notebooks/examples/

@@ -1,0 +1,63 @@
+# Knowledge Graph QA System Dependencies
+
+# Core Framework
+streamlit>=1.28.0
+langchain>=0.0.350
+python-dotenv>=1.0.0
+
+# Document Processing
+pypdf2>=3.0.1
+python-docx>=0.8.11
+openpyxl>=3.1.2
+python-magic>=0.4.27
+# textract>=1.6.5  # Temporarily disabled due to metadata issues
+
+# NLP & ML
+spacy>=3.7.0
+transformers>=4.35.0
+sentence-transformers>=2.2.2
+torch>=2.0.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Knowledge Graph
+neo4j>=5.13.0
+py2neo>=2021.2.4
+
+# Vector Database
+lancedb>=0.3.0
+faiss-cpu>=1.7.4
+
+# LLM Integration
+openai>=1.0.0
+anthropic>=0.3.0
+huggingface-hub>=0.17.0
+
+# Web Interface & Visualization
+plotly>=5.17.0
+networkx>=3.2.0
+pyvis>=0.3.2
+streamlit-agraph>=0.0.45
+
+# Utilities
+requests>=2.31.0
+pydantic>=2.5.0
+rich>=13.7.0
+tqdm>=4.66.0
+schedule>=1.2.0
+
+# Development & Testing
+pytest>=7.4.0
+black>=23.9.0
+flake8>=6.1.0
+mypy>=1.7.0
+jupyter>=1.0.0
+
+# Database & Storage
+sqlalchemy>=2.0.0
+redis>=5.0.0
+
+networkx 
+pyvis 
+streamlit-agraph
+pydantic-settings
