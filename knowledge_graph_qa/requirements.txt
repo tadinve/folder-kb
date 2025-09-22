@@ -61,3 +61,6 @@ networkx
 pyvis 
 streamlit-agraph
 pydantic-settings
+PyPDF2
+python-docx
+openpyxl

@@ -1,0 +1,4 @@
+// Project File Types
+digraph {
+	root [label="File Inventory" color=gold shape=diamond style=filled]
+}

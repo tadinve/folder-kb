@@ -1,0 +1,20 @@
+// Project Business Document Categories
+digraph {
+	root [label="File Inventory" color=gold shape=diamond style=filled]
+	Contracts [label="Contracts (628)" color=lightblue shape=box style=filled]
+	root -> Contracts [label=contains]
+	Drawings [label="Drawings (390)" color=lightblue shape=box style=filled]
+	root -> Drawings [label=contains]
+	Reports [label="Reports (13)" color=lightblue shape=box style=filled]
+	root -> Reports [label=contains]
+	"Meeting Minutes" [label="Meeting Minutes (60)" color=lightblue shape=box style=filled]
+	root -> "Meeting Minutes" [label=contains]
+	Manuals [label="Manuals (1)" color=lightblue shape=box style=filled]
+	root -> Manuals [label=contains]
+	Financials [label="Financials (887)" color=lightblue shape=box style=filled]
+	root -> Financials [label=contains]
+	Schedules [label="Schedules (1)" color=lightblue shape=box style=filled]
+	root -> Schedules [label=contains]
+	Correspondence [label="Correspondence (86)" color=lightblue shape=box style=filled]
+	root -> Correspondence [label=contains]
+}

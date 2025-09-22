@@ -182,15 +182,15 @@ class ConstructionKnowledgeGraph:
             return True
         
         try:
-            # Create Cypher query
-            properties_str = ", ".join([f"{k}: ${k}" for k in entity.properties.keys()])
-            query = f"CREATE (n:{entity.type} {{id: $id, {properties_str}}})"
-            
+            # Use MERGE to avoid duplicates
+            set_str = ", ".join([f"n.{k} = ${k}" for k in entity.properties.keys()])
+            query = f"MERGE (n:{entity.type} {{id: $id}})\nSET {set_str}"
+
             parameters = {"id": entity.id, **entity.properties}
-            
+
             with self.driver.session() as session:
                 session.run(query, parameters)
-                self.logger.info(f"✅ Added {entity.type}: {entity.id}")
+                self.logger.info(f"✅ Added or updated {entity.type}: {entity.id}")
                 return True
                 
         except Exception as e:
@@ -218,12 +218,12 @@ class ConstructionKnowledgeGraph:
             query = f"""
             MATCH (a), (b)
             WHERE a.id = $source_id AND b.id = $target_id
-            CREATE (a)-[r:{relationship.relationship_type}{properties_str}]->(b)
+            MERGE (a)-[r:{relationship.relationship_type}{properties_str}]->(b)
             """
-            
+
             with self.driver.session() as session:
                 result = session.run(query, parameters)
-                self.logger.info(f"✅ Added relationship: {relationship.source_id} -{relationship.relationship_type}-> {relationship.target_id}")
+                self.logger.info(f"✅ Added or merged relationship: {relationship.source_id} -{relationship.relationship_type}-> {relationship.target_id}")
                 return True
                 
         except Exception as e:
