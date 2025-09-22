@@ -6,4 +6,4 @@ pytesseract
 pdf2image 
 pillow
 pymupdf
-pdf2markdown
+pdf2markdown4llm

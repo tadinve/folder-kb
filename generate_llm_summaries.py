@@ -3,8 +3,10 @@ import os
 import PyPDF2
 from pdf2image import convert_from_path
 import pytesseract
+
+# Use custom pdf_to_md.py logic for Markdown extraction
 try:
-    from pdf2markdown import convert_pdf
+    from pdf_to_md import convert_pdf_to_md
     PDF2MD_AVAILABLE = True
 except ImportError:
     PDF2MD_AVAILABLE = False
@@ -23,6 +25,8 @@ def generate_summary(row):
         "Summarize the following document page for a project knowledge graph. "
         "Write a clear, detailed, 300-500 word summary in professional English. "
         "Focus on key topics, entities, and any important context.\n\n"
+        "Also, based on the content, classify the business type of this page as one of: 'drawing-or-map', 'financial-plan', 'schedule', 'correspondence', 'contract', 'administration', 'testing-inspection', 'closeout', or 'other'. "
+        "At the end of your summary, add a line in the format: BUSINESS_TYPE: <type>\n"
         f"Document/Page Content:\n{row.get('file_content', '')}\n"
     )
     try:
@@ -83,7 +87,7 @@ def main():
             ftype = row["file_type"].lower()
             if ftype != "pdf":
                 continue
-            if pdf_count >= 1:
+            if pdf_count >= 8:
                 break
             # Heuristic for business type
             if any(x in fname for x in ["drawing", "plan", "map", "sketch"]) or "drawings" in fdir:
@@ -104,46 +108,40 @@ def main():
                 full_path = os.path.join(dir_part, row["filename"])
             else:
                 full_path = os.path.join("DocLabs_Sample_Project_Template", dir_part, row["filename"])
-            md_pages = None
             try:
                 with open(full_path, 'rb') as f:
                     reader_pdf = PyPDF2.PdfReader(f)
                     num_pages = len(reader_pdf.pages)
                     max_pages = min(num_pages, 5)
-                    if num_pages > 5:
-                        # Try to extract markdown for each page using pdf2markdown if available
-                        if PDF2MD_AVAILABLE:
-                            try:
-                                md_pages = convert_pdf(full_path, per_page=True)
-                            except Exception as e:
-                                md_pages = ["" for _ in range(num_pages)]
-                                print(f"pdf2markdown error: {e}")
-                        else:
-                            md_pages = ["" for _ in range(num_pages)]
-                        for page_idx in range(max_pages):
-                            page_number = page_idx + 1
-                            page = reader_pdf.pages[page_idx]
-                            page_text = (page.extract_text() or "").replace('\n', ' ').replace('\r', ' ')
-                            summary = ""
-                            exceptions = f"File has {num_pages} pages, which exceeds the 5-page limit. Only first 5 pages processed."
-                            page_text_md = (md_pages[page_idx][:1000].replace('\n', ' ').replace('\r', ' ') if md_pages and len(md_pages) > page_idx else "")
-                            row_out = dict(row)
-                            row_out["page_number"] = page_number
-                            row_out["llm_summary"] = summary
-                            row_out["exceptions"] = exceptions
-                            row_out["business_type"] = business_type
-                            row_out["page_text"] = page_text[:1000]
-                            row_out["page_text_md"] = page_text_md
-                            writer.writerow(row_out)
-                        print(f"Stopped after 5 pages for {row['filename']} (has {num_pages} pages > 5)")
-                        continue
-                    # For <= 5 pages, process each page and re-open file for image/OCR as needed
+                    # Always split into single-page PDFs and analyze each page
                     for page_idx in range(max_pages):
                         page_number = page_idx + 1
                         page = reader_pdf.pages[page_idx]
+                        # Extract text
                         page_text = (page.extract_text() or "").replace('\n', ' ').replace('\r', ' ')
+                        # Extract Markdown
+                        if PDF2MD_AVAILABLE:
+                            try:
+                                import tempfile
+                                pdf_writer = PyPDF2.PdfWriter()
+                                pdf_writer.add_page(page)
+                                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+                                    pdf_writer.write(tmp_pdf)
+                                    tmp_pdf_path = tmp_pdf.name
+                                with open(tmp_pdf_path, "rb") as pdf_f:
+                                    pdf_bytes = pdf_f.read()
+                                os.remove(tmp_pdf_path)
+                                md_bytes, md_filename = convert_pdf_to_md(pdf_bytes, f"{os.path.splitext(full_path)[0]}_page{page_number}.pdf")
+                                page_text_md = md_bytes.decode("utf-8")[:8000]
+                            except Exception as e:
+                                page_text_md = f"[Markdown extraction error: {e}]"
+                                print(f"pdf_to_md error: {e}")
+                        else:
+                            page_text_md = "[pdf_to_md not installed]"
                         summary = ""
                         exceptions = ""
+                        business_type_out = business_type
+                        # Summarize or OCR/visual fallback
                         if page_text and len(page_text.strip()) > 30:
                             row_for_prompt = dict(row)
                             row_for_prompt["file_content"] = page_text[:8000]
@@ -154,114 +152,63 @@ def main():
                             print(f"Summarizing (text): {row['filename']} page {page_number}")
                             try:
                                 summary = generate_summary(row_for_prompt)
+                                # Extract business type from summary if present
+                                business_type_out = ""
+                                for line in summary.splitlines()[::-1]:
+                                    if line.strip().upper().startswith("BUSINESS_TYPE:"):
+                                        business_type_out = line.split(":",1)[-1].strip().lower()
+                                        summary = summary.replace(line, "").strip()
+                                        break
+                                if not business_type_out:
+                                    business_type_out = "other"
                             except Exception as e:
                                 summary = f"LLM ERROR: {e}"
+                                business_type_out = "other"
                             if page_text and len(page_text) == 8000:
                                 exceptions = "Page content truncated due to LLM context length limit. Not all content analyzed."
                             print(f"\n--- LLM Summary for {row['filename']} page {page_number} ---\n{summary}\n")
-                            # Use pdf2markdown for this page if available
-                            # Robust Markdown extraction for this page
-                            page_text_md = ""
-                            if PDF2MD_AVAILABLE:
-                                try:
-                                    md_pages = convert_pdf(full_path, per_page=True)
-                                    if md_pages and len(md_pages) > page_idx:
-                                        page_text_md = md_pages[page_idx][:8000]
-                                    else:
-                                        page_text_md = "[Markdown not available for this page]"
-                                except Exception as e:
-                                    page_text_md = f"[Markdown extraction error: {e}]"
-                                    print(f"pdf2markdown error: {e}")
-                            else:
-                                page_text_md = "[pdf2markdown not installed]"
-                            row_out = dict(row)
-                            row_out["page_number"] = page_number
-                            row_out["llm_summary"] = summary
-                            row_out["exceptions"] = exceptions
-                            row_out["business_type"] = business_type
-                            row_out["page_text"] = page_text[:1000]
-                            row_out["page_text_md"] = page_text_md
-                            writer.writerow(row_out)
                         else:
                             # Fallback: OCR or visual analysis
-                            try:
-                                # Re-open the file for image/OCR operations to avoid 'seek of closed file'
-                                images = convert_from_path(full_path, dpi=300, first_page=page_number, last_page=page_number)
-                                ocr_text = []
-                                for img in images:
-                                    ocr_text.append(pytesseract.image_to_string(img))
-                                ocr_result = " ".join(ocr_text).replace('\n', ' ').replace('\r', ' ').strip()
-                                if ocr_result and len(ocr_result) > 30:
-                                    row_for_prompt = dict(row)
-                                    row_for_prompt["file_content"] = ocr_result[:8000]
-                                    row_for_prompt["full_path"] = full_path
-                                    row_for_prompt["page_number"] = page_number
-                                    row_for_prompt.pop("created_date", None)
-                                    row_for_prompt.pop("modified_date", None)
-                                    print(f"Summarizing (OCR): {row['filename']} page {page_number}")
-                                    try:
-                                        summary = generate_summary(row_for_prompt)
-                                    except Exception as e:
-                                        summary = f"LLM ERROR: {e}"
-                                    if len(ocr_result) == 8000:
-                                        exceptions = "OCR page content truncated due to LLM context length limit. Not all content analyzed."
-                                    print(f"\n--- LLM OCR Summary for {row['filename']} page {page_number} ---\n{summary}\n")
-                                    # Use pdf2markdown for this page if available
-                                    page_text_md = ""
-                                    if PDF2MD_AVAILABLE:
-                                        try:
-                                            md_pages = convert_pdf(full_path, per_page=True)
-                                            if md_pages and len(md_pages) > page_idx:
-                                                page_text_md = md_pages[page_idx][:8000]
-                                        except Exception as e:
-                                            print(f"pdf2markdown error: {e}")
-                                    row_out = dict(row)
-                                    row_out["page_number"] = page_number
-                                    row_out["llm_summary"] = summary
-                                    row_out["exceptions"] = exceptions
-                                    row_out["business_type"] = business_type
-                                    row_out["page_text"] = ocr_result[:1000]
-                                    row_out["page_text_md"] = page_text_md
-                                    writer.writerow(row_out)
-                                else:
-                                    # Fallback: visual LLM
-                                    try:
-                                        cfg = DescribeConfig(provider="openai", max_pages=1, pdf_dpi=200)
-                                        visual_summaries = describe_visual_file(full_path, cfg, page_number=page_number)
-                                        summary = "\n".join([f"[{label}] {desc}" for label, desc in visual_summaries])
-                                        exceptions = "Page analyzed visually, not all content may be captured."
-                                        print(f"\n--- Visual LLM Summary for {row['filename']} page {page_number} ---\n{summary}\n")
-                                        row_out = dict(row)
-                                        row_out["page_number"] = page_number
-                                        row_out["llm_summary"] = summary
-                                        row_out["exceptions"] = exceptions
-                                        row_out["business_type"] = business_type
-                                        row_out["page_text"] = ""
-                                        row_out["page_text_md"] = ""
-                                        writer.writerow(row_out)
-                                    except Exception as e:
-                                        summary = f"ERROR: Could not generate image summary for {row['filename']} page {page_number}: {e}"
-                                        exceptions = f"Extraction error: {e}"
-                                        print(f"\n--- Extraction Error for {row['filename']} page {page_number} ---\n{summary}\n")
-                                        row_out = dict(row)
-                                        row_out["page_number"] = page_number
-                                        row_out["llm_summary"] = summary
-                                        row_out["exceptions"] = exceptions
-                                        row_out["business_type"] = business_type
-                                        row_out["page_text"] = ""
-                                        row_out["page_text_md"] = ""
-                                        writer.writerow(row_out)
-                            except Exception as e:
-                                summary = f"ERROR: Could not extract or analyze page {page_number}: {e}"
-                                exceptions = f"Extraction error: {e}"
-                                row_out = dict(row)
-                                row_out["page_number"] = page_number
-                                row_out["llm_summary"] = summary
-                                row_out["exceptions"] = exceptions
-                                row_out["business_type"] = business_type
-                                row_out["page_text"] = ""
-                                row_out["page_text_md"] = ""
-                                writer.writerow(row_out)
+                            images = convert_from_path(full_path, dpi=300, first_page=page_number, last_page=page_number)
+                            ocr_text = []
+                            for img in images:
+                                ocr_text.append(pytesseract.image_to_string(img))
+                            ocr_result = " ".join(ocr_text).replace('\n', ' ').replace('\r', ' ').strip()
+                            if ocr_result and len(ocr_result) > 30:
+                                row_for_prompt = dict(row)
+                                row_for_prompt["file_content"] = ocr_result[:8000]
+                                row_for_prompt["full_path"] = full_path
+                                row_for_prompt["page_number"] = page_number
+                                row_for_prompt.pop("created_date", None)
+                                row_for_prompt.pop("modified_date", None)
+                                print(f"Summarizing (OCR): {row['filename']} page {page_number}")
+                                try:
+                                    summary = generate_summary(row_for_prompt)
+                                except Exception as e:
+                                    summary = f"LLM ERROR: {e}"
+                                if len(ocr_result) == 8000:
+                                    exceptions = "OCR page content truncated due to LLM context length limit. Not all content analyzed."
+                                print(f"\n--- LLM OCR Summary for {row['filename']} page {page_number} ---\n{summary}\n")
+                            else:
+                                # Fallback: visual LLM
+                                try:
+                                    cfg = DescribeConfig(provider="openai", max_pages=1, pdf_dpi=200)
+                                    visual_summaries = describe_visual_file(full_path, cfg, page_number=page_number)
+                                    summary = "\n".join([f"[{label}] {desc}" for label, desc in visual_summaries])
+                                    exceptions = "Page analyzed visually, not all content may be captured."
+                                    print(f"\n--- Visual LLM Summary for {row['filename']} page {page_number} ---\n{summary}\n")
+                                except Exception as e:
+                                    summary = f"ERROR: Could not generate image summary for {row['filename']} page {page_number}: {e}"
+                                    exceptions = f"Extraction error: {e}"
+                                    print(f"\n--- Extraction Error for {row['filename']} page {page_number} ---\n{summary}\n")
+                        row_out = dict(row)
+                        row_out["page_number"] = page_number
+                        row_out["llm_summary"] = summary
+                        row_out["exceptions"] = exceptions
+                        row_out["business_type"] = business_type_out
+                        row_out["page_text"] = page_text[:1000]
+                        row_out["page_text_md"] = page_text_md
+                        writer.writerow(row_out)
             except Exception as e:
                 print(f"[PDF Split Error] {row['filename']}: {e}")
         print(f"Finished execution. Processed {pdf_count} PDF files. Output written to {OUTPUT_CSV_PATH}")
