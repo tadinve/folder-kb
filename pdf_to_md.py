@@ -13,10 +13,14 @@ def convert_pdf_to_md(pdf_bytes: bytes, original_filename: str) -> (bytes, str):
     try:
         converter = PDF2Markdown4LLM(remove_headers=False, skip_empty_tables=True, table_header="### Table")
         md_content = converter.convert(pdf_path)
-        md_filename = os.path.splitext(original_filename)[0] + ".md"
-        with open(md_filename, "w", encoding="utf-8") as md_file:
+        md_dir = "ProcessedFolder/md_files"
+        if not os.path.exists(md_dir):
+            os.makedirs(md_dir)
+        md_filename = os.path.splitext(os.path.basename(original_filename))[0] + ".md"
+        md_file_path = os.path.join(md_dir, md_filename)
+        with open(md_file_path, "w", encoding="utf-8") as md_file:
             md_file.write(md_content)
-        return md_content.encode("utf-8"), md_filename
+        return md_content.encode("utf-8"), md_file_path
     except Exception as e:
         raise RuntimeError(f"Error converting PDF to Markdown: {e}")
     finally:
